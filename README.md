@@ -41,6 +41,7 @@ An automation tool that scans sub-domains
 **Requirements:** ``Go Language`` and ``Python 3``
 
 **System requirements:** Recommended to run on vps with ``1VCPU`` and ``2GB RAM``.
+tested in Oracle Cloud Free Tier and oracle cloud ampere always free
 
 
 ## Installation
