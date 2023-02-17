@@ -113,3 +113,45 @@ fi
 
 
 echo -e "[project_enum] -SUBDOMAIN ENUMERATION Scanning completed on $DM at $(date)" | notify -silent
+
+
+    #@> FILTERING DOMAINS
+    if [ -f "$EC" ]; then
+        cat .tmp/*.list | grep -v "*" | grep -vf $EC | sort -u | sed '/@\|<BR>\|\_\|*/d' | dnsx -a -aaaa -cname -ns -ptr -mx -soa -retry 3 -r ~/wordlists/resolvers.txt -t 10 -silent | anew -q database/subdomains_$DM.txt
+    else
+        cat .tmp/*.list | grep -v "*" | sort -u | sed '/@\|<BR>\|\_\|*/d' | dnsx -a -aaaa -cname -ns -ptr -mx -soa -retry 3 -r ~/wordlists/resolvers.txt -t 10 -silent | anew -q database/subdomains_$DM.txt
+    fi
+
+    #@> WEB PROBING AND SCREENSHOT
+    naabu -retries 3 -r ~/wordlists/resolvers.txt -l database/subdomains_$DM.txt -p "$PR" -silent -no-color 2> /dev/null | anew -q database/ports_$DM.txt
+    cat database/ports_$DM.txt | httprobe -prefer-https | anew -q database/lives_$DM.txt
+    xargs -a database/lives_$DM.txt -P 50 -I % bash -c "echo % | aquatone -chrome-path $CHROME_BIN -out database/screenshots/ -threads 10 -silent" 2> /dev/null &> /dev/null
+    [ "$JO" == "False" ] || cat database/lives_$DM | python3 -c "import sys; import json; print (json.dumps({'liveurls':list(sys.stdin)}))" | sed 's/\\n//g' | tee .json/liveurls_$DM.json &> /dev/null
+    [ "$JO" == "False" ] || cat database/subdomains_$DM.txt | python3 -c "import sys; import json; print (json.dumps({'subdomains':list(sys.stdin)}))" | sed 's/\\n//g' | tee .json/subdomains_$DM.json &> /dev/null
+    [ "$JO" == "False" ] || cat database/ports_$DM.txt | python3 -c "import sys; import json; print (json.dumps({'ports':list(sys.stdin)}))" | sed 's/\\n//g' | tee .json/ports_$DM.json &> /dev/null
+
+
+    echo -e ""
+    echo -e "${BK}        ${RT}" | tr -d '\n' | pv -qL 4; echo -e " STARTING SUBDOMAIN SCANNING ON ${BK}$DM${RT} (${YW}it may take time${RT})"
+    SUBD_PASV
+    SUBD_ACTV
+    SUBD_SCND
+    SUBD_CHCK
+    [ "$SL" == "False" ] && cat database/lives_$DM 2> /dev/null
+    echo -e "Subdomain enumeration completed, total [Subdomains:$(cat database/subdomains_$DM.txt | wc -l)  Activeurls:$(cat database/lives_$DM | wc -l)] found" | notify -silent &> /dev/null
+
+
+#@> WEB CRAWLING AND FILTERING
+
+
+    echo -e "${BK}        ${RT}" | tr -d '\n' | pv -qL 6; echo -e " STARTING WEBCRAWLING ON ${BK}$DM${RT} (${YW}it may take time${RT})" | notify -silent
+    agnee -d $DM -q -o database/dorks_$DM.txt -p 4
+    timeout 50m gospider -S database/lives_$DM -d 10 -c 20 -t 50 -K 3 --no-redirect --js -a -w --blacklist ".(eot|jpg|jpeg|gif|css|tif|tiff|png|ttf|otf|woff|woff2|ico|svg|txt)" --include-subs -q -o .tmp/gospider 2> /dev/null | anew -q .tmp/gospider_$DM.list
+    xargs -a database/lives_$DM -P 50 -I % bash -c "echo % | waybackurls" 2> /dev/null | anew -q .tmp/waybackurls_$DM.list
+    xargs -a database/lives_$DM -P 50 -I % bash -c "echo % | gau --blacklist eot,jpg,jpeg,gif,css,tif,tiff,png,ttf,otf,woff,woff2,ico,svg,txt --retries 3 --threads 50" 2> /dev/null | anew -q .tmp/gau_$DM.list 2> /dev/null &> /dev/null
+    cat .tmp/gospider_$DM.list .tmp/gau_$DM.list .tmp/waybackurls_$DM.list 2> /dev/null | sed '/\[/d' | grep $DM | sort -u | uro | anew -q database/urls_$DM.txt # <-- Filtering duplicate and common endpoints
+    [ "$JO" == "False" ] || cat database/urls_$DM.txt | python3 -c "import sys; import json; print (json.dumps({'endpoints':list(sys.stdin)}))" | sed 's/\\n//g' | tee .json/urls_$DM.json &> /dev/null
+
+
+echo -e "[project_enum] -  WEBCRAWLING ON Scanning completed on $DM at $(date)" | notify -silent
+
