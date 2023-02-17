@@ -26,3 +26,38 @@
   <a href="https://github.com/OJ/gobuster">`gobuster`</a> •
   <a href="https://github.com/jaeles-project/gospider">`gospider`</a> •
   <a href="https://github.com/tomnomnom/waybackurls">`waybackurls`</a><br>
+
+
+
+## Author
+
+- [@imaltaf](https://github.com/imaltaf)
+
+
+# project_erum
+
+An automation tool that scans sub-domains
+
+**Requirements:** ``Go Language`` and ``Python 3``
+
+**System requirements:** Recommended to run on vps with ``1VCPU`` and ``2GB RAM``.
+
+
+## Installation
+
+
+```bash
+  git clone https://github.com/imaltaf/project_erum
+```
+    
+```bash
+    cd project_erum
+```
+```bash
+    chmod +x project_erum
+```
+
+```bash
+    ./project_erum -d example.com
+```
+
