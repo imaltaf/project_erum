@@ -61,4 +61,7 @@ tested in Oracle Cloud Free Tier and oracle cloud ampere always free
 ```bash
     ./project_erum -d example.com
 ```
+**Warning:** This code was originally created for personal use, it generates a substantial amount of traffic, please use with caution.
+
+|[`buymeacoffee.com/imaltaf`](https://www.buymeacoffee.com/imaltaf)|
 
