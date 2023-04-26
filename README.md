@@ -1,4 +1,5 @@
-# project_erum
+# project_erum 
+# this tool is only for arm64 Oracle free tier
 
 
 
