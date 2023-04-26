@@ -27,6 +27,15 @@
   <a href="https://github.com/jaeles-project/gospider">`gospider`</a> •
   <a href="https://github.com/tomnomnom/waybackurls">`waybackurls`</a><br>
 
+```bash
+#Make sure you're root before installing the tool
+
+garud:~ sudo su
+garud:~ apt install git
+garud:~ git clone https://github.com/R0X4R/Garud.git && cd Garud/ && chmod +x garud install.sh && mv garud /usr/bin/ && ./install.sh
+```
+
+> **Note**: If you encounter any-issue while running `install.sh` file or `garud` run `sed -i -e 's/\r$//' install.sh`
 
 
 ## Author
