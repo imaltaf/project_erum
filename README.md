@@ -1,6 +1,5 @@
-# project_erum 
+# project_erum
 # this tool is only for arm64 Oracle free tier
-
 
 
 **Tools used - You must need to install these tools to use this script**<br>
@@ -33,11 +32,10 @@
 
 garud:~ sudo su
 garud:~ apt install git
-garud:~ git clone https://github.com/R0X4R/Garud.git && cd Garud/ && chmod +x garud install.sh && mv garud /usr/bin/ && ./install.sh
+garud:~ git clone https://github.com/imaltaf/project_erum.git && cd project_erum/ && chmod +x project_erum install.sh && mv project_erum /usr/bin/ && ./install.sh
 ```
 
-> **Note**: If you encounter any-issue while running `install.sh` file or `garud` run `sed -i -e 's/\r$//' install.sh`
-
+> **Note**: If you encounter any-issue while running `install.sh` file or `project_erum` run `sed -i -e 's/\r$//' install.sh`
 
 ## Author
 
