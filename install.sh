@@ -1,13 +1,34 @@
 #!/bin/bash
+
 BK="\e[7m"
 RT="\e[0m"
 GR="\e[32m"
 YW="\e[93m"
 
+# Ensure the script is run as root
 if (( $EUID != 0 )); then
     echo -e "MAKE SURE YOU'RE ROOT BEFORE RUNNING THE SCRIPT"
     exit
 fi
+
+# Prompt user to choose architecture
+echo "Select the architecture for installation:"
+echo "1) amd64"
+echo "2) arm64"
+read -p "Enter the number (1 or 2): " arch_choice
+
+case $arch_choice in
+    1)
+        arch="amd64"
+        ;;
+    2)
+        arch="arm64"
+        ;;
+    *)
+        echo "Invalid choice. Exiting."
+        exit 1
+        ;;
+esac
 
 folders(){
     mkdir -p ~/tools
@@ -16,18 +37,28 @@ folders(){
     mkdir -p ~/wordlists
 }
 
-golanguage(){
-    goversion=$(curl -ks -L https://go.dev/VERSION?m=text)
-    wget https://go.dev/dl/$goversion.linux-arm64.tar.gz -q
-    rm -rf /usr/local/go && tar -C /usr/local -xzf $goversion.linux-amd64.tar.gz
-    export PATH=$PATH:/usr/local/go/bin
-    echo "export PATH=$PATH:/usr/local/go/bin" >> .bashrc
-    if command -v go &> /dev/null; then
-        echo -e "\n${GR}GO INSTALLED SUCCESSFULLY${RT}"
-    else
-        echo -e "\n${YW}THERE'S A PROBLEM INSTALLING GO, TRY INSTALLING IT MANUALLY${RT}"
+install_go() {
+    goversion="go1.22.4"
+    url="https://go.dev/dl/$goversion.linux-$arch.tar.gz"
+    
+    wget $url -q
+
+    if [ $? -ne 0 ]; then
+        echo "Failed to download Go tarball. Exiting."
+        exit 1
     fi
-    rm -rf $goversion.linux-arm64.tar.gz
+
+    rm -rf /usr/local/go && tar -C /usr/local -xzf $goversion.linux-$arch.tar.gz
+    export PATH=$PATH:/usr/local/go/bin
+    echo "export PATH=\$PATH:/usr/local/go/bin" >> ~/.bashrc
+
+    if command -v go &> /dev/null; then
+        echo -e "\nGO INSTALLED SUCCESSFULLY"
+    else
+        echo -e "\nTHERE'S A PROBLEM INSTALLING GO, TRY INSTALLING IT MANUALLY"
+    fi
+
+    rm -rf $goversion.linux-$arch.tar.gz
 }
 
 dependencies(){
@@ -37,14 +68,14 @@ dependencies(){
     sudo apt-get full-upgrade -y > /dev/null 2>&1
     sudo apt-get install apt-transport-https bsdmainutils build-essential snapd cmake curl dnsutils gcc git jq libdata-hexdump-perl libffi-dev libpcap-dev libssl-dev libxml2-dev libxml2-utils libxslt1-dev lynx medusa nmap procps pv python3 python3-dev python3-pip wget zip zlib1g-dev libpcap-dev screen -y > /dev/null 2>&1
     sudo snap install chromium > /dev/null 2>&1
-    golanguage
+    install_go
     echo -e "${GR}SUCCESS${RT}\n"
 }
 
 githubd(){
     echo -e "${BK}DOWNLOADING AND INSTALLING ALL TOOLS FROM GITHUB${RT}\n"
 
-    echo -e "\n- Installing Sublister"
+    echo -e "\n- Installing Sublist3r"
     git clone https://github.com/aboul3la/Sublist3r.git -q ~/tools/Sublist3r
     cd ~/tools/Sublist3r && sudo pip3 install -r requirements.txt > /dev/null 2>&1
     git clone https://github.com/1ndianl33t/Gf-Patterns -q && mv Gf-Patterns/*.json ~/.gf/ && rm -rf Gf-Patterns/ > /dev/null 2>&1
@@ -55,8 +86,7 @@ githubd(){
     fi
     
     echo -e "\n- Installing Bhedak"
-    cd && pip3 install bhedak > /dev/null 2>&1
-    cd && pip3 install tldextract > /dev/null 2>&1
+    cd && wget -O bhedak https://raw.githubusercontent.com/R0X4R/bhedak/main/bhedak.py -q && chmod +x bhedak && mv bhedak /usr/bin/ > /dev/null 2>&1
     which bhedak &> /dev/null && 
     if command -v bhedak &> /dev/null; then
         echo -e "${GR}SUCCESS${RT}"
@@ -123,8 +153,14 @@ githubd(){
     fi
 
     echo -e "\n- Installing aquatone"
-    wget -q https://github.com/michenriksen/aquatone/releases/download/v1.7.0/aquatone_linux_arm64_1.7.0.zip  > /dev/null 2>&1
-    unzip aquatone_linux_arm64_1.7.0.zip > /dev/null 2>&1
+    if [ "$arch" == "amd64" ]; then
+        aquatone_url="https://github.com/michenriksen/aquatone/releases/download/v1.7.0/aquatone_linux_amd64_1.7.0.zip"
+    else
+        aquatone_url="https://github.com/michenriksen/aquatone/releases/download/v1.7.0/aquatone_linux_arm64_1.7.0.zip"
+    fi
+    
+    wget -q $aquatone_url -O aquatone.zip
+    unzip aquatone.zip > /dev/null 2>&1
     mv aquatone /usr/bin/ > /dev/null 2>&1
     rm -rf aquatone* LICENSE.txt README.md
     if command -v aquatone &> /dev/null; then
@@ -257,7 +293,7 @@ githubd(){
     fi
 
     echo -e "\n- Installing amass"
-    go install -v github.com/OWASP/Amass/v3/...@master > /dev/null 2>&1
+    go install -v github.com/owasp-amass/amass/v4/...@master > /dev/null 2>&1
     if [ -f ~/go/bin/amass ]; then
         echo -e "${GR}SUCCESS${RT}"
     else
@@ -312,12 +348,8 @@ main(){
     sudo cp ~/go/bin/* /usr/bin/ > /dev/null 2>&1
     nuclei -update-templates > /dev/null 2>&1
     echo -e "\nPLEASE CONFIGURE NOTIFY API'S IN ${BK} ~/.config/notify/provider-config.yaml ${RT} FILE"
-    echo -e "THANKS FOR INSTALLING ${BK}GARUD${RT}. HAPPY HUNTING :)\nPS: If you get any bug using garud, please tweet about it and tag @R0X4R, also support me on ko-fi"
+    echo -e "THANKS FOR INSTALLING ${BK}GARUD${RT}. HAPPY HUNTING :)\nPS: "
     garud -h 2> /dev/null
 }
 
-while true
-do
-    main
-    exit
-done
+main
