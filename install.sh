@@ -119,12 +119,18 @@ githubd(){
     fi
     
     echo -e "\n- Installing naabu"
-    go install github.com/projectdiscovery/naabu/v2/cmd/naabu@latest > /dev/null 2>&1
+    go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        echo -e "${YW}Failed to install naabu${RT}"
+        exit 1
+    fi
+
     if [ -f ~/go/bin/naabu ]; then
         echo -e "${GR}SUCCESS${RT}"
     else
         echo -e "${YW}FAILED${RT}"
     fi
+
     
     echo -e "\n- Installing gobuster"
     go install github.com/OJ/gobuster/v3@latest > /dev/null 2>&1
@@ -160,14 +166,31 @@ githubd(){
     fi
     
     wget -q $aquatone_url -O aquatone.zip
-    unzip aquatone.zip > /dev/null 2>&1
-    mv aquatone /usr/bin/ > /dev/null 2>&1
-    rm -rf aquatone* LICENSE.txt README.md
+    if [ $? -ne 0 ]; then
+        echo -e "${YW}Failed to download Aquatone${RT}"
+        exit 1
+    fi
+    
+    unzip -o aquatone.zip -d aquatone > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        echo -e "${YW}Failed to unzip Aquatone${RT}"
+        exit 1
+    fi
+    
+    mv aquatone/aquatone /usr/bin/ > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        echo -e "${YW}Failed to move Aquatone to /usr/bin${RT}"
+        exit 1
+    fi
+    
+    rm -rf aquatone aquatone.zip LICENSE.txt README.md
+    
     if command -v aquatone &> /dev/null; then
         echo -e "${GR}SUCCESS${RT}"
     else
         echo -e "${YW}FAILED${RT}"
     fi
+
 
     echo -e "\n- Installing assetfinder"
     go install github.com/tomnomnom/assetfinder@latest > /dev/null 2>&1
