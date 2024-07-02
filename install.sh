@@ -130,7 +130,7 @@ githubd(){
     fi
     
     echo -e "\n- Installing naabu"
-    go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest > /dev/null 2>&1
+    go install -v go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest > /dev/null 2>&1
     if [ $? -ne 0 ]; then
         echo -e "${YW}Failed to install naabu${RT}"
         exit 1
