@@ -131,17 +131,11 @@ githubd(){
     
     echo -e "\n- Installing naabu"
     go install -v github.com/projectdiscovery/naabu/v2/cmd/naabu@latest > /dev/null 2>&1
-    if [ $? -ne 0 ]; then
-        echo -e "${YW}Failed to install naabu${RT}"
-        exit 1
-    fi
-
     if [ -f ~/go/bin/naabu ]; then
         echo -e "${GR}SUCCESS${RT}"
     else
         echo -e "${YW}FAILED${RT}"
     fi
-
     
     echo -e "\n- Installing gobuster"
     go install github.com/OJ/gobuster/v3@latest > /dev/null 2>&1
