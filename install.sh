@@ -11,7 +11,6 @@ if (( $EUID != 0 )); then
     exit
 fi
 
-# Prompt user to choose architecture
 echo "Select the architecture for installation:"
 echo "1) amd64"
 echo "2) arm64"
@@ -41,6 +40,11 @@ install_go() {
     goversion="go1.22.4"
     url="https://go.dev/dl/$goversion.linux-$arch.tar.gz"
     
+    if command -v go &> /dev/null; then
+        echo "Go is already installed."
+        return
+    fi
+
     wget $url -q
 
     if [ $? -ne 0 ]; then
@@ -48,18 +52,25 @@ install_go() {
         exit 1
     fi
 
-    rm -rf /usr/local/go && tar -C /usr/local -xzf $goversion.linux-$arch.tar.gz
+    sudo rm -rf /usr/local/go && sudo tar -C /usr/local -xzf $goversion.linux-$arch.tar.gz
+
+    if [ $? -ne 0 ]; then
+        echo "Failed to extract Go tarball. Exiting."
+        exit 1
+    fi
+
     export PATH=$PATH:/usr/local/go/bin
     echo "export PATH=\$PATH:/usr/local/go/bin" >> ~/.bashrc
 
     if command -v go &> /dev/null; then
-        echo -e "\nGO INSTALLED SUCCESSFULLY"
+        echo -e "\nGo installed successfully."
     else
-        echo -e "\nTHERE'S A PROBLEM INSTALLING GO, TRY INSTALLING IT MANUALLY"
+        echo -e "\nThere was a problem installing Go. Try installing it manually."
     fi
 
     rm -rf $goversion.linux-$arch.tar.gz
 }
+
 
 dependencies(){
     mv .github/payloads/patterns/*.json ~/.gf/ 2> /dev/null && cd
@@ -371,7 +382,7 @@ main(){
     sudo cp ~/go/bin/* /usr/bin/ > /dev/null 2>&1
     nuclei -update-templates > /dev/null 2>&1
     echo -e "\nPLEASE CONFIGURE NOTIFY API'S IN ${BK} ~/.config/notify/provider-config.yaml ${RT} FILE"
-    echo -e "THANKS FOR INSTALLING ${BK}GARUD${RT}. HAPPY HUNTING :)\nPS: "
+    echo -e "THANKS FOR INSTALLING ${BK}Project-Erum${RT}. HAPPY HUNTING :)\nPS: "
     garud -h 2> /dev/null
 }
 

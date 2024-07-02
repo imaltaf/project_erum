@@ -1,0 +1,3 @@
+# Ignore go1.22.4 and specific folders
+go1.22.4
+*.foulders/

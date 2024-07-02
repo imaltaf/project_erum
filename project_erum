@@ -3,16 +3,14 @@
 # coded by DarkMechanic
 # project_enum - version 1.0
 
-#@> CHECK CONNECTION
+# Check internet connection
 wget -q --spider http://google.com
-if [ $? -ne 0 ];then
-    echo "Connect to internet before running project_enum
- !"
+if [ $? -ne 0 ]; then
+    echo "Connect to the internet before running project_enum!"
     exit 127
 fi
 
-
-#@> VARIABLES
+# Variables
 FN=
 DM=
 EC=
@@ -22,47 +20,43 @@ RO=False
 PR="21,22,80,81,280,300,443,583,591,593,832,981,1010,1099,1311,2082,2087,2095,2096,2480,3000,3128,3333,4243,4444,4445,4567,4711,4712,4993,5000,5104,5108,5280,5281,5601,5800,6543,7000,7001,7002,7396,7474,8000,8001,8008,8009,8014,8042,8060,8069,8080,8081,8083,8088,8090,8091,8095,8118,8123,8172,8181,8222,8243,8280,8281,8333,8337,8443,8500,8530,8531,8834,8880,8887,8888,8983,9000,9001,9043,9060,9080,9090,9091,9092,9200,9443,9502,9800,9981,10000,10250,10443,11371,12043,12046,12443,15672,16080,17778,18091,18092,20720,28017,32000,55440,55672"
 VR="project_enum - version 1.0"
 
+# Print usage
+PRINT_USAGE() {
+    echo -e "Usage: $0 -d|--domain <domain> [-f|--file <file>] [-j|--json] [-s|--silent] [-x|--exclude <file>] [-v|--version] [-h|--help]"
+    exit 1
+}
 
-#@> ARGUMENTS
+# Arguments
 while [ -n "$1" ]; do
     case $1 in
-            -d|--domain)
-                DM=$2
-                shift ;;
-
-            -f|--domain)
-                FN=$2
-                shift ;;
-
-            -h|--help)
-                PRINT_USAGE
-                shift ;;
-
-            -j|--json)
-                JO='true'
-                ;;
-
-            -s|--silent)
-                SL='true'
-                ;;
-
-            -x|--exclude)
-                EC=$2
-                shift ;;
-
-            -v|--version)
-                echo -e "$VR"
-                exit 0 ;;
-
-            *)
-                PRINT_USAGE
+        -d|--domain)
+            DM=$2
+            shift ;;
+        -f|--file)
+            FN=$2
+            shift ;;
+        -h|--help)
+            PRINT_USAGE
+            shift ;;
+        -j|--json)
+            JO='true' ;;
+        -s|--silent)
+            SL='true' ;;
+        -x|--exclude)
+            EC=$2
+            shift ;;
+        -v|--version)
+            echo -e "$VR"
+            exit 0 ;;
+        *)
+            PRINT_USAGE ;;
     esac
     shift
 done
 
-#@> INITIAL CONFIGS
+# Initial configs
 if [ -z "$DM" ]; then
-    echo -e "\n${BK}ERROR${RT} - TARGET NOT SUPPLIED."
+    echo -e "\nERROR - TARGET NOT SUPPLIED."
     PRINT_USAGE
 fi
 
@@ -70,88 +64,73 @@ if [ "$RO" == "true" ]; then
     JO='true'
 fi
 
+# Create directories
+mkdir -p ~/project_enum
+cd ~/project_enum || exit 1
 
+TARGET_DIR="$DM"
+mkdir -p "$TARGET_DIR"
+cd "$TARGET_DIR" || exit 1
 
+mkdir -p .tmp
+mkdir -p database
+[ "$JO" == "False" ] || mkdir -p .json
 
-    echo -e "[project_enum] - Scanning started on $DM at $(date)" | notify -silent
+echo -e "[project_enum] - Scanning started on $DM at $(date)" | notify -silent
 
-#@> MAKE FOLDERS
+# Stage 1: Subdomain enumeration
+curl -s "https://crt.sh/?q=%25.$DM&output=json" | jq -r '.[].name_value' 2>/dev/null | sed 's/\*\.//g' | sort -u | grep -o "\w.*$DM" | anew -q .tmp/cert_$DM.list
+curl -s "https://api.hackertarget.com/hostsearch/?q=$DM" | grep -o "\w.*$DM" | anew -q .tmp/htarget_$DM.list
+curl -s "https://riddler.io/search/exportcsv?q=pld:$DM" | grep -Po "(([\w.-]*)\.([\w]*)\.([A-z]))\w+" | grep -o "\w.*$DM" | anew -q .tmp/riddler_$DM.list
+assetfinder --subs-only $DM | anew -q .tmp/assetfinder_$DM.list
+python3 ~/tools/Sublist3r/sublist3r.py -d $DM -o .tmp/sublister_$DM.list &> /dev/null
+subfinder -silent -d $DM -all -t 100 -o .tmp/subfinder_$DM.list &> /dev/null
+amass enum -passive -d $DM -o .tmp/amass_$DM.list &> /dev/null
+crobat -s $DM | anew -q .tmp/crobat_$DM.list
 
-    mkdir -p .tmp
-    mkdir -p database
-    #mkdir -p database/.gf
-    #mkdir -p database/dirs
-    #mkdir -p vulns
-    [ "$JO" == "False" ] || mkdir -p .json
+echo -e "Stage 1 completed on $DM at $(date)" | notify -silent
 
-    curl -s "https://crt.sh/?q=%25.$DM&output=json" | jq -r '.[].name_value' 2>/dev/null | sed 's/\*\.//g' | sort -u | grep -o "\w.*$DM" | anew -q .tmp/cert_$DM.list
-    curl -s "https://api.hackertarget.com/hostsearch/?q=$DM" | grep -o "\w.*$DM" | anew -q .tmp/htarget_$DM.list
-    curl -s "https://riddler.io/search/exportcsv?q=pld:$DM" | grep -Po "(([\w.-]*)\.([\w]*)\.([A-z]))\w+" | grep -o "\w.*$DM" | anew -q .tmp/riddler_$DM.list
-    assetfinder --subs-only $DM | anew -q .tmp/assetfinder_$DM.list
-    python3 ~/tools/Sublist3r/sublist3r.py -d $DM -o .tmp/sublister_$DM.list &> /dev/null
-    subfinder -silent -d $DM -all -t 100 -o .tmp/subfinder_$DM.list &> /dev/null
-    amass enum -passive -d $DM -o .tmp/amass_$DM.list &> /dev/null
-    crobat -s $DM | anew -q .tmp/crobat_$DM.list
+# Stage 2: Additional subdomain discovery
+timeout 50m ffuf -u http://FUZZ.$DM/ -t 100 -p '1.0-2.0' -w ~/wordlists/subdomains.txt -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36" -mc 200 -r -o .tmp/ffuf_$DM.json -s 2> /dev/null &> /dev/null
+echo -e "ffuf completed on $DM at $(date)" | notify -silent
 
-    echo -e "Stage 1 completed on $DM at $(date)" | notify -silent
+timeout 50m gobuster dns -d $DM --no-error -z -q -t 100 -w ~/wordlists/subdomains.txt 2> /dev/null | sed 's/Found: //g' | anew -q .tmp/gobuster_$DM.list
+echo -e "gobuster completed on $DM at $(date)" | notify -silent
 
-    timeout 50m ffuf -u http://FUZZ.$DM/ -t 100 -p '1.0-2.0' -w ~/wordlists/subdomains.txt -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.77 Safari/537.36" -mc 200 -r -o .tmp/ffuf_$DM.json -s 2> /dev/null &> /dev/null
-    echo -e "ffuf completed on $DM at $(date)" | notify -silent
+timeout 50m amass enum -active -brute -w ~/wordlists/subdomains.txt -d $DM -o .tmp/amassact_$DM.list &> /dev/null
+echo -e "amass completed on $DM at $(date)" | notify -silent
 
-    timeout 50m gobuster dns -d $DM --no-error -z -q -t 100 -w ~/wordlists/subdomains.txt 2> /dev/null | sed 's/Found: //g' | anew -q .tmp/gobuster_$DM.list
-    echo -e "gobuster completed on $DM at $(date)" | notify -silent
+cat .tmp/ffuf_$DM.json 2> /dev/null | jq -r '.results[] | .host' 2> /dev/null | anew -q .tmp/ffuf_$DM.list && rm -rf .tmp/ffuf_$DM.json
 
-    timeout 50m amass enum -active -brute -w ~/wordlists/subdomains.txt -d $DM -o .tmp/amassact_$DM.list &> /dev/null
-    echo -e "amass completed on $DM at $(date)" | notify -silent
+echo -e "Stage 2 completed on $DM at $(date)" | notify -silent
 
-    cat .tmp/ffuf_$DM.json 2> /dev/null | jq -r '.results[] | .host' 2> /dev/null | anew -q .tmp/ffuf_$DM.list && rm -rf .tmp/ffuf_$DM.json
+# Filter domains
+if [ -f "$EC" ]; then
+    cat .tmp/*.list | grep -v "*" | grep -vf $EC | sort -u | sed '/@\|<BR>\|\_\|*/d' | dnsx -a -aaaa -cname -ns -ptr -mx -soa -retry 3 -r ~/wordlists/resolvers.txt -t 10 -silent | anew -q database/subdomains_$DM.txt
+else
+    cat .tmp/*.list | grep -v "*" | sort -u | sed '/@\|<BR>\|\_\|*/d' | dnsx -a -aaaa -cname -ns -ptr -mx -soa -retry 3 -r ~/wordlists/resolvers.txt -t 10 -silent | anew -q database/subdomains_$DM.txt
+fi
 
-    echo -e "Stage 2 completed on $DM at $(date)" | notify -silent
+# Web probing and screenshot
+naabu -retries 3 -r ~/wordlists/resolvers.txt -l database/subdomains_$DM.txt -p "$PR" -silent -no-color 2> /dev/null | anew -q database/ports_$DM.txt
+cat database/ports_$DM.txt | httprobe -prefer-https | anew -q database/lives_$DM.txt
+xargs -a database/lives_$DM.txt -P 50 -I % bash -c "echo % | aquatone -chrome-path $CHROME_BIN -out database/screenshots/ -threads 10 -silent" 2> /dev/null &> /dev/null
+[ "$JO" == "False" ] || cat database/lives_$DM | python3 -c "import sys; import json; print (json.dumps({'liveurls':list(sys.stdin)}))" | sed 's/\\n//g' | tee .json/liveurls_$DM.json &> /dev/null
+[ "$JO" == "False" ] || cat database/subdomains_$DM.txt | python3 -c "import sys; import json; print (json.dumps({'subdomains':list(sys.stdin)}))" | sed 's/\\n//g' | tee .json/subdomains_$DM.json &> /dev/null
+[ "$JO" == "False" ] || cat database/ports_$DM.txt | python3 -c "import sys; import json; print (json.dumps({'ports':list(sys.stdin)}))" | sed 's/\\n//g' | tee .json/ports_$DM.json &> /dev/null
 
-    cat .tmp/*.list | grep -v "*" | sed '/@\|<BR>\|\_\|*/d' | grep "$DM" | anew -q .tmp/domains
-    xargs -a .tmp/domains -P 50 -I % bash -c "assetfinder --subs-only % | anew -q .tmp/seconddomains_$DM.list" 2> /dev/null; timeout 30m xargs -a .tmp/domains -P 10 -I % bash -c "amass enum -passive -d %" 2> /dev/null | anew -q .tmp/seconddomains_$DM.list
+echo -e "[project_enum] - SUBDOMAIN ENUMERATION Scanning completed on $DM at $(date)" | notify -silent
 
+# Web crawling and filtering
+echo -e "STARTING WEBCRAWLING ON $DM (it may take time)" | notify -silent
+agnee -d $DM -q -o database/dorks_$DM.txt -p 4
+timeout 50m gospider -S database/lives_$DM -d 10 -c 20 -t 50 -K 3 --no-redirect --js -a -w --blacklist ".(eot|jpg|jpeg|gif|css|tif|tiff|png|ttf|otf|woff|woff2|ico|svg|txt)" --include-subs -q -o .tmp/gospider 2> /dev/null | anew -q .tmp/gospider_$DM.list
+xargs -a database/lives_$DM -P 50 -I % bash -c "echo % | waybackurls" 2> /dev/null | anew -q .tmp/waybackurls_$DM.list
+xargs -a database/lives_$DM -P 50 -I % bash -c "echo % | gau --blacklist eot,jpg,jpeg,gif,css,tif,tiff,png,ttf,otf,woff,woff2,ico,svg,txt --retries 3 --threads 50" 2> /dev/null | anew -q .tmp/gau_$DM.list 2> /dev/null &> /dev/null
+cat .tmp/gospider_$DM.list .tmp/gau_$DM.list .tmp/waybackurls_$DM.list 2> /dev/null | sed '/\[/d' | grep $DM | sort -u | uro | anew -q database/urls_$DM.txt
+[ "$JO" == "False" ] || cat database/urls_$DM.txt | python3 -c "import sys; import json; print (json.dumps({'endpoints':list(sys.stdin)}))" | sed 's/\\n//g' | tee .json/urls_$DM.json &> /dev/null
 
-echo -e "[project_enum] -SUBDOMAIN ENUMERATION Scanning completed on $DM at $(date)" | notify -silent
+echo -e "[project_enum] - WEBCRAWLING ON Scanning completed on $DM at $(date)" | notify -silent
 
-
-    #@> FILTERING DOMAINS
-    if [ -f "$EC" ]; then
-        cat .tmp/*.list | grep -v "*" | grep -vf $EC | sort -u | sed '/@\|<BR>\|\_\|*/d' | dnsx -a -aaaa -cname -ns -ptr -mx -soa -retry 3 -r ~/wordlists/resolvers.txt -t 10 -silent | anew -q database/subdomains_$DM.txt
-    else
-        cat .tmp/*.list | grep -v "*" | sort -u | sed '/@\|<BR>\|\_\|*/d' | dnsx -a -aaaa -cname -ns -ptr -mx -soa -retry 3 -r ~/wordlists/resolvers.txt -t 10 -silent | anew -q database/subdomains_$DM.txt
-    fi
-
-    #@> WEB PROBING AND SCREENSHOT
-    naabu -retries 3 -r ~/wordlists/resolvers.txt -l database/subdomains_$DM.txt -p "$PR" -silent -no-color 2> /dev/null | anew -q database/ports_$DM.txt
-    cat database/ports_$DM.txt | httprobe -prefer-https | anew -q database/lives_$DM.txt
-    xargs -a database/lives_$DM.txt -P 50 -I % bash -c "echo % | aquatone -chrome-path $CHROME_BIN -out database/screenshots/ -threads 10 -silent" 2> /dev/null &> /dev/null
-    [ "$JO" == "False" ] || cat database/lives_$DM | python3 -c "import sys; import json; print (json.dumps({'liveurls':list(sys.stdin)}))" | sed 's/\\n//g' | tee .json/liveurls_$DM.json &> /dev/null
-    [ "$JO" == "False" ] || cat database/subdomains_$DM.txt | python3 -c "import sys; import json; print (json.dumps({'subdomains':list(sys.stdin)}))" | sed 's/\\n//g' | tee .json/subdomains_$DM.json &> /dev/null
-    [ "$JO" == "False" ] || cat database/ports_$DM.txt | python3 -c "import sys; import json; print (json.dumps({'ports':list(sys.stdin)}))" | sed 's/\\n//g' | tee .json/ports_$DM.json &> /dev/null
-
-
-    echo -e ""
-    echo -e "${BK}        ${RT}" | tr -d '\n' | pv -qL 4; echo -e " STARTING SUBDOMAIN SCANNING ON ${BK}$DM${RT} (${YW}it may take time${RT})"
-    SUBD_PASV
-    SUBD_ACTV
-    SUBD_SCND
-    SUBD_CHCK
-    [ "$SL" == "False" ] && cat database/lives_$DM 2> /dev/null
-    echo -e "Subdomain enumeration completed, total [Subdomains:$(cat database/subdomains_$DM.txt | wc -l)  Activeurls:$(cat database/lives_$DM | wc -l)] found" | notify -silent &> /dev/null
-
-
-#@> WEB CRAWLING AND FILTERING
-
-
-    echo -e "${BK}        ${RT}" | tr -d '\n' | pv -qL 6; echo -e " STARTING WEBCRAWLING ON ${BK}$DM${RT} (${YW}it may take time${RT})" | notify -silent
-    agnee -d $DM -q -o database/dorks_$DM.txt -p 4
-    timeout 50m gospider -S database/lives_$DM -d 10 -c 20 -t 50 -K 3 --no-redirect --js -a -w --blacklist ".(eot|jpg|jpeg|gif|css|tif|tiff|png|ttf|otf|woff|woff2|ico|svg|txt)" --include-subs -q -o .tmp/gospider 2> /dev/null | anew -q .tmp/gospider_$DM.list
-    xargs -a database/lives_$DM -P 50 -I % bash -c "echo % | waybackurls" 2> /dev/null | anew -q .tmp/waybackurls_$DM.list
-    xargs -a database/lives_$DM -P 50 -I % bash -c "echo % | gau --blacklist eot,jpg,jpeg,gif,css,tif,tiff,png,ttf,otf,woff,woff2,ico,svg,txt --retries 3 --threads 50" 2> /dev/null | anew -q .tmp/gau_$DM.list 2> /dev/null &> /dev/null
-    cat .tmp/gospider_$DM.list .tmp/gau_$DM.list .tmp/waybackurls_$DM.list 2> /dev/null | sed '/\[/d' | grep $DM | sort -u | uro | anew -q database/urls_$DM.txt # <-- Filtering duplicate and common endpoints
-    [ "$JO" == "False" ] || cat database/urls_$DM.txt | python3 -c "import sys; import json; print (json.dumps({'endpoints':list(sys.stdin)}))" | sed 's/\\n//g' | tee .json/urls_$DM.json &> /dev/null
-
-
-echo -e "[project_enum] -  WEBCRAWLING ON Scanning completed on $DM at $(date)" | notify -silent
-
+# Final output
+echo -e "Subdomain enumeration completed, total [Subdomains:$(cat database/subdomains_$DM.txt | wc -l) Activeurls:$(cat database/lives_$DM | wc -l)] found" | notify -silent &> /dev/null
